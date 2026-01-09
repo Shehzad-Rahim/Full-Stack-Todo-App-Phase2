@@ -1,16 +1,19 @@
 from sqlmodel import Session
 from fastapi import Depends
-from ..database.engine import get_session
+from ..database.connection import get_session
 
 
-def get_db_session():
+def get_db_session(session: Session = Depends(get_session)):
     """
     Get database session dependency.
 
     This function is used as a FastAPI dependency to provide database
     sessions to API endpoints.
 
-    Yields:
+    Args:
+        session: SQLModel database session from the get_session dependency
+
+    Returns:
         Session: SQLModel database session
     """
-    yield next(get_session())
+    return session

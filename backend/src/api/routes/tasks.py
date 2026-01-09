@@ -2,18 +2,19 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 from typing import List
 from ...models.task import Task, TaskCreateRequest, TaskRead, TaskUpdate, TaskToggle
-from ...database.engine import get_session
+from ...database.connection import get_session  # Updated import
 from ...api.deps import get_db_session
+from ...auth.deps import validate_user_id  # Import the validation dependency
 import uuid
 
 
 router = APIRouter()
 
 
-@router.post("/tasks", response_model=TaskRead, status_code=status.HTTP_201_CREATED)
+@router.post("/{user_id}/tasks", response_model=TaskRead, status_code=status.HTTP_201_CREATED)
 def create_task(
     *,
-    user_id: str,
+    user_id: str = Depends(validate_user_id),  # Validate user_id matches token
     task: TaskCreateRequest,
     db_session: Session = Depends(get_db_session)
 ):
@@ -21,7 +22,7 @@ def create_task(
     Create a new task for a specific user.
 
     Args:
-        user_id: The ID of the user creating the task
+        user_id: The ID of the user creating the task (validated against JWT)
         task: Task creation data
         db_session: Database session dependency
 
@@ -39,17 +40,17 @@ def create_task(
     return db_task
 
 
-@router.get("/tasks", response_model=List[TaskRead])
+@router.get("/{user_id}/tasks", response_model=List[TaskRead])
 def read_tasks(
     *,
-    user_id: str,
+    user_id: str = Depends(validate_user_id),  # Validate user_id matches token
     db_session: Session = Depends(get_db_session)
 ):
     """
     Get all tasks for a specific user.
 
     Args:
-        user_id: The ID of the user whose tasks to retrieve
+        user_id: The ID of the user whose tasks to retrieve (validated against JWT)
         db_session: Database session dependency
 
     Returns:
@@ -62,10 +63,10 @@ def read_tasks(
     return tasks
 
 
-@router.get("/tasks/{id}", response_model=TaskRead)
+@router.get("/{user_id}/tasks/{id}", response_model=TaskRead)
 def read_task(
     *,
-    user_id: str,
+    user_id: str = Depends(validate_user_id),  # Validate user_id matches token
     id: int,
     db_session: Session = Depends(get_db_session)
 ):
@@ -73,7 +74,7 @@ def read_task(
     Get a specific task for a specific user.
 
     Args:
-        user_id: The ID of the user
+        user_id: The ID of the user (validated against JWT)
         id: The ID of the task to retrieve
         db_session: Database session dependency
 
@@ -96,10 +97,10 @@ def read_task(
     return db_task
 
 
-@router.put("/tasks/{id}", response_model=TaskRead)
+@router.put("/{user_id}/tasks/{id}", response_model=TaskRead)
 def update_task(
     *,
-    user_id: str,
+    user_id: str = Depends(validate_user_id),  # Validate user_id matches token
     id: int,
     task: TaskUpdate,
     db_session: Session = Depends(get_db_session)
@@ -108,7 +109,7 @@ def update_task(
     Update a specific task for a specific user.
 
     Args:
-        user_id: The ID of the user
+        user_id: The ID of the user (validated against JWT)
         id: The ID of the task to update
         task: Task update data
         db_session: Database session dependency
@@ -145,10 +146,10 @@ def update_task(
     return db_task
 
 
-@router.delete("/tasks/{id}")
+@router.delete("/{user_id}/tasks/{id}")
 def delete_task(
     *,
-    user_id: str,
+    user_id: str = Depends(validate_user_id),  # Validate user_id matches token
     id: int,
     db_session: Session = Depends(get_db_session)
 ):
@@ -156,7 +157,7 @@ def delete_task(
     Delete a specific task for a specific user.
 
     Args:
-        user_id: The ID of the user
+        user_id: The ID of the user (validated against JWT)
         id: The ID of the task to delete
         db_session: Database session dependency
 
@@ -182,10 +183,10 @@ def delete_task(
     return {"message": "Task deleted successfully"}
 
 
-@router.patch("/tasks/{id}/complete", response_model=TaskRead)
+@router.patch("/{user_id}/tasks/{id}/complete", response_model=TaskRead)
 def toggle_task_completion(
     *,
-    user_id: str,
+    user_id: str = Depends(validate_user_id),  # Validate user_id matches token
     id: int,
     task_toggle: TaskToggle,
     db_session: Session = Depends(get_db_session)
@@ -194,7 +195,7 @@ def toggle_task_completion(
     Toggle the completion status of a specific task for a specific user.
 
     Args:
-        user_id: The ID of the user
+        user_id: The ID of the user (validated against JWT)
         id: The ID of the task to update
         task_toggle: Completion status toggle data
         db_session: Database session dependency
