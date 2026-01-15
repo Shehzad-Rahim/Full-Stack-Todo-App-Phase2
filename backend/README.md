@@ -132,7 +132,40 @@ The Task entity includes the following fields:
 
 ## Security
 
+### Authentication
+The backend service now includes JWT-based authentication for secure API access:
+
+- **JWT Token Authentication**: All endpoints require a valid JWT token in the Authorization header
+- **Format**: `Authorization: Bearer <jwt_token>`
+- **Token Generation**: Tokens are issued during signup/signin via `/auth/signup` and `/auth/signin` endpoints
+- **User Verification**: Token user ID is validated against URL parameter to prevent cross-user access
+
+### Endpoints
+- `POST /auth/signup` - Create a new user account
+- `POST /auth/signin` - Authenticate user and return JWT token
+- `POST /auth/refresh` - Refresh an existing JWT token
+- All existing task endpoints now require authentication
+
+### Data Isolation
 All API endpoints enforce user-based data isolation by:
+- Requiring valid JWT token for access
+- Validating that the user ID in the token matches the user ID in the URL parameter
+- Returning 403 Forbidden for mismatched user IDs
 - Filtering queries by user_id parameter
 - Returning 404 for tasks that don't belong to the requesting user
 - Validating user_id format and existence
+
+### Rate Limiting
+Authentication endpoints are rate-limited:
+- `/auth/signup`: 5 requests per minute
+- `/auth/signin`: 10 requests per minute
+- `/auth/refresh`: 5 requests per minute
+
+### Environment Configuration
+Additional environment variables for authentication:
+```env
+DATABASE_URL="postgresql://username:password@ep-xxxxxx.us-east-1.aws.neon.tech/dbname?sslmode=require"
+ENVIRONMENT="development"
+LOG_LEVEL="info"
+BETTER_AUTH_SECRET="your-super-secret-key-change-in-production"
+```

@@ -1,6 +1,4 @@
 from sqlalchemy import create_engine
-from sqlmodel import Session
-from typing import Generator
 import os
 from dotenv import load_dotenv
 
@@ -20,14 +18,3 @@ engine = create_engine(
     echo=False,  # Set to True for SQL query logging
     connect_args=connect_args
 )
-
-
-def get_session() -> Generator[Session, None, None]:
-    """
-    Get a database session.
-
-    Yields:
-        Session: A SQLModel session
-    """
-    with Session(engine) as session:
-        yield session

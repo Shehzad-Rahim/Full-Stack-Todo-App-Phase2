@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 from typing import List
 from ...models.task import Task, TaskCreateRequest, TaskRead, TaskUpdate, TaskToggle
-from ...database.engine import get_session
+from ...database.connection import get_session  # Updated import
 from ...api.deps import get_db_session
+from ...auth.deps import validate_user_id, get_user_id_from_cookie  # Import the validation dependency
 import uuid
 
 
@@ -13,15 +14,15 @@ router = APIRouter()
 @router.post("/tasks", response_model=TaskRead, status_code=status.HTTP_201_CREATED)
 def create_task(
     *,
-    user_id: str,
+    user_id: str = Depends(get_user_id_from_cookie),  # Get user_id from cookie
     task: TaskCreateRequest,
     db_session: Session = Depends(get_db_session)
 ):
     """
-    Create a new task for a specific user.
+    Create a new task for the authenticated user.
 
     Args:
-        user_id: The ID of the user creating the task
+        user_id: The ID of the user creating the task (extracted from HttpOnly cookie)
         task: Task creation data
         db_session: Database session dependency
 
@@ -29,8 +30,12 @@ def create_task(
         TaskRead: The created task with its ID and timestamps
     """
     # Create the task with the validated input
-    db_task = Task.model_validate(task)
-    db_task.user_id = user_id
+    db_task = Task(
+        title=task.title,
+        description=task.description,
+        completed=task.completed,
+        user_id=user_id
+    )
 
     db_session.add(db_task)
     db_session.commit()
@@ -42,14 +47,14 @@ def create_task(
 @router.get("/tasks", response_model=List[TaskRead])
 def read_tasks(
     *,
-    user_id: str,
+    user_id: str = Depends(get_user_id_from_cookie),  # Get user_id from cookie
     db_session: Session = Depends(get_db_session)
 ):
     """
-    Get all tasks for a specific user.
+    Get all tasks for the authenticated user.
 
     Args:
-        user_id: The ID of the user whose tasks to retrieve
+        user_id: The ID of the user whose tasks to retrieve (extracted from HttpOnly cookie)
         db_session: Database session dependency
 
     Returns:
@@ -65,15 +70,15 @@ def read_tasks(
 @router.get("/tasks/{id}", response_model=TaskRead)
 def read_task(
     *,
-    user_id: str,
+    user_id: str = Depends(get_user_id_from_cookie),  # Get user_id from cookie
     id: int,
     db_session: Session = Depends(get_db_session)
 ):
     """
-    Get a specific task for a specific user.
+    Get a specific task for the authenticated user.
 
     Args:
-        user_id: The ID of the user
+        user_id: The ID of the user (extracted from HttpOnly cookie)
         id: The ID of the task to retrieve
         db_session: Database session dependency
 
@@ -99,16 +104,16 @@ def read_task(
 @router.put("/tasks/{id}", response_model=TaskRead)
 def update_task(
     *,
-    user_id: str,
+    user_id: str = Depends(get_user_id_from_cookie),  # Get user_id from cookie
     id: int,
     task: TaskUpdate,
     db_session: Session = Depends(get_db_session)
 ):
     """
-    Update a specific task for a specific user.
+    Update a specific task for the authenticated user.
 
     Args:
-        user_id: The ID of the user
+        user_id: The ID of the user (extracted from HttpOnly cookie)
         id: The ID of the task to update
         task: Task update data
         db_session: Database session dependency
@@ -135,8 +140,8 @@ def update_task(
         setattr(db_task, field, value)
 
     # Update the updated_at timestamp
-    from datetime import datetime
-    db_task.updated_at = datetime.utcnow()
+    from datetime import datetime, timezone
+    db_task.updated_at = datetime.now(timezone.utc)
 
     db_session.add(db_task)
     db_session.commit()
@@ -148,15 +153,15 @@ def update_task(
 @router.delete("/tasks/{id}")
 def delete_task(
     *,
-    user_id: str,
+    user_id: str = Depends(get_user_id_from_cookie),  # Get user_id from cookie
     id: int,
     db_session: Session = Depends(get_db_session)
 ):
     """
-    Delete a specific task for a specific user.
+    Delete a specific task for the authenticated user.
 
     Args:
-        user_id: The ID of the user
+        user_id: The ID of the user (extracted from HttpOnly cookie)
         id: The ID of the task to delete
         db_session: Database session dependency
 
@@ -185,16 +190,16 @@ def delete_task(
 @router.patch("/tasks/{id}/complete", response_model=TaskRead)
 def toggle_task_completion(
     *,
-    user_id: str,
+    user_id: str = Depends(get_user_id_from_cookie),  # Get user_id from cookie
     id: int,
     task_toggle: TaskToggle,
     db_session: Session = Depends(get_db_session)
 ):
     """
-    Toggle the completion status of a specific task for a specific user.
+    Toggle the completion status of a specific task for the authenticated user.
 
     Args:
-        user_id: The ID of the user
+        user_id: The ID of the user (extracted from HttpOnly cookie)
         id: The ID of the task to update
         task_toggle: Completion status toggle data
         db_session: Database session dependency
@@ -219,8 +224,8 @@ def toggle_task_completion(
     db_task.completed = task_toggle.completed
 
     # Update the updated_at timestamp
-    from datetime import datetime
-    db_task.updated_at = datetime.utcnow()
+    from datetime import datetime, timezone
+    db_task.updated_at = datetime.now(timezone.utc)
 
     db_session.add(db_task)
     db_session.commit()
