@@ -61,6 +61,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
 
+        # Get the request path to determine if it's a documentation endpoint
+        path = request.url.path
+
         # Add security headers to the response
         # HTTP Strict Transport Security (HSTS)
         response.headers["strict-transport-security"] = "max-age=31536000; includeSubDomains; preload"
@@ -77,8 +80,21 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Referrer-Policy
         response.headers["referrer-policy"] = "strict-origin-when-cross-origin"
 
-        # Content-Security-Policy
-        response.headers["content-security-policy"] = "default-src 'self'; frame-ancestors 'none';"
+        # Content-Security-Policy - allow more resources for documentation endpoints
+        if path in ["/docs", "/redoc"]:
+            # Allow resources needed for Swagger UI and ReDoc
+            response.headers["content-security-policy"] = (
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; "
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://unpkg.com; "
+                "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; "
+                "img-src 'self' data: https:; "
+                "connect-src 'self'; "
+                "frame-ancestors 'none';"
+            )
+        else:
+            # More restrictive policy for API endpoints
+            response.headers["content-security-policy"] = "default-src 'self'; frame-ancestors 'none';"
 
         # Cache-Control for API responses
         response.headers["cache-control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"

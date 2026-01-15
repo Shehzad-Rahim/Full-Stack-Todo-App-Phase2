@@ -1,4 +1,5 @@
 from fastapi import Depends, HTTPException, status
+from fastapi import Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -7,7 +8,6 @@ import logging
 from jose import JWTError, jwt
 
 from sqlmodel import Session
-from fastapi import Depends
 from ..database.connection import get_session
 from ..models.user import User
 from .jwt import verify_token, extract_user_id_from_token
@@ -143,3 +143,40 @@ def validate_user_id(user_id: str, token_user_id: str = Depends(get_user_id_from
 
     logger.info(f"Successfully validated user ID: {user_id}")
     return user_id
+
+
+def get_user_id_from_cookie(request: Request) -> str:
+    """
+    Extract user ID from the JWT token stored in HttpOnly cookie.
+    """
+    access_token = request.cookies.get("access_token")
+    if not access_token:
+        logger.warning("No access token found in cookies")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No access token provided in cookies",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    try:
+        from .jwt import verify_token
+        payload = verify_token(access_token)
+        user_id = payload.get("sub")
+
+        if user_id is None:
+            logger.warning("No user_id found in token payload")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token: no user ID",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        logger.info(f"Successfully extracted user_id from cookie: {user_id}")
+        return user_id
+    except Exception as e:
+        logger.warning(f"Failed to extract user_id from cookie: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid access token in cookie",
+            headers={"WWW-Authenticate": "Bearer"},
+        )

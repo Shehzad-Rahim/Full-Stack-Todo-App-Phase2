@@ -261,6 +261,8 @@ Better Auth can be configured to issue JWT (JSON Web Token) tokens when users lo
 ## Active Technologies
 - Python 3.11 + FastAPI, SQLModel, Neon PostgreSQL driver, Pydantic (001-backend-core-data-layer)
 - Neon Serverless PostgreSQL database with SQLModel ORM (001-backend-core-data-layer)
+- TypeScript with Next.js 16+ App Router + Next.js 16+, React 18+, Tailwind CSS, Better Auth, Framer Motion, React Hook Form, Zod (003-frontend-fullstack)
+- Browser storage for JWT tokens and session state (N/A for persistent storage) (003-frontend-fullstack)
 
 ## Recent Changes
 - 001-backend-core-data-layer: Added Python 3.11 + FastAPI, SQLModel, Neon PostgreSQL driver, Pydantic

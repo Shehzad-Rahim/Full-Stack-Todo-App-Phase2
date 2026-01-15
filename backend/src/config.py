@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     log_level: str = "info"
     better_auth_secret: str = os.getenv("BETTER_AUTH_SECRET", "your-default-secret-key-change-in-production")
+    better_auth_url: str | None = os.getenv("BETTER_AUTH_URL")
     access_token_expire_minutes: int = 43200  # 30 days in minutes (30 * 24 * 60)
 
     class Config:

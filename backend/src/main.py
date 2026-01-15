@@ -38,9 +38,9 @@ def create_app() -> FastAPI:
     # Add CORS middleware
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # In production, restrict this to your frontend domains
+        allow_origins=["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000", "http://127.0.0.1:3001"],  # Allow frontend origins
         allow_credentials=True,
-        allow_methods=["*"],
+        allow_methods=["*"],  # Explicitly specify methods
         allow_headers=["*"],
     )
 
@@ -79,7 +79,7 @@ def create_app() -> FastAPI:
     @app.exception_handler(500)
     async def global_exception_handler(request, exc):
         logger.error(f"Internal server error: {str(exc)}")
-        return {"message": "An internal server error occurred", "error": str(exc)}
+        return {"message": "An internal server error occurred", "error": "Internal server error"}
 
     # Handle validation errors
     @app.exception_handler(ValidationError)
@@ -89,6 +89,17 @@ def create_app() -> FastAPI:
             status_code=HTTP_422_UNPROCESSABLE_ENTITY,
             content={"detail": exc.errors()}
         )
+        
+    # Handle preflight OPTIONS requests globally
+    @app.options("/{full_path:path}")
+    async def preflight_handler(full_path: str, request: Request):
+        response = JSONResponse(status_code=200, content={"detail": "OK"})
+        response.headers["Access-Control-Allow-Origin"] = request.headers.get("origin", "*")
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = request.headers.get("access-control-request-headers", "*")
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
+
 
     return app
 
